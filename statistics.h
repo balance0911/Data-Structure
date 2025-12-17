@@ -1,46 +1,80 @@
-//½Ó¿ÚÎå Í³¼ÆÓë±¨±í½Ó¿Ú
-#ifndef _STATISTICS_H
-#define _STATISTICS_H
+// statistics.h
+#ifndef STATISTICS_H
+#define STATISTICS_H
 
-#include "ordered_list.h"
+#include <string>
+#include <vector>
+#include <algorithm>
 #include "circular_queue.h"
 #include "linked_stack.h"
 
-// ÈÕ³£Í³¼Æ
-typedef struct {
-    char date[11];                  // Í³¼ÆÈÕÆÚ
-    int total_prescriptions;        // µ±ÈÕ´¦·½Á¿
-    int total_dosage;               // µ±ÈÕ×Ü¼ÁÁ¿
-    int warning_triggered;          // Ô¤¾¯´¥·¢´ÎÊı
-    double avg_response_time;       // Æ½¾ùÏìÓ¦Ê±¼ä
-} DailyStats;
+// è¯å“ç”¨é‡ç»Ÿè®¡ç»“æ„
+struct MedicineUsage {
+    int med_id;                 // è¯å“ç¼–å·
+    std::string med_name;       // è¯å“åç§°
+    int total_usage;            // æ€»ç”¨é‡
+    int usage_frequency;        // ä½¿ç”¨é¢‘æ¬¡ï¼ˆå¼€äº†å¤šå°‘æ¬¡ï¼‰
+    double usage_percentage;    // ç”¨é‡å æ¯”
+    
+    MedicineUsage(int id = 0, const std::string& name = "")
+        : med_id(id), med_name(name), total_usage(0), usage_frequency(0), usage_percentage(0.0) {}
+    
+    // ç”¨äºæ’åºçš„æ¯”è¾ƒå‡½æ•°
+    bool operator<(const MedicineUsage& other) const {
+        return total_usage > other.total_usage; // é™åºæ’åˆ—
+    }
+};
 
-// Ò©Æ·Ê¹ÓÃÍ³¼Æ
-typedef struct {
-    int med_id;
-    char med_name[MAX_NAME_LEN];
-    int total_usage;                // ×ÜÓÃÁ¿
-    int usage_frequency;            // Ê¹ÓÃÆµ´Î
-    double usage_percentage;        // ÓÃÁ¿Õ¼±È
-} UsageStats;
+// ç»Ÿè®¡æŠ¥è¡¨ç±»
+class Statistics {
+private:
+    CircularQueue* in_queue;    // å…¥åº“é˜Ÿåˆ—
+    LinkedStack* out_stack;     // å‡ºåº“æ ˆ
+    
+public:
+    // æ„é€ å‡½æ•°
+    Statistics(CircularQueue* queue = nullptr, LinkedStack* stack = nullptr);
+    
+    // è®¾ç½®æ•°æ®æº
+    void setDataSources(CircularQueue* queue, LinkedStack* stack);
+    
+    // æ¯æ—¥ç»Ÿè®¡ï¼ˆé¢˜ç›®è¦æ±‚ï¼šæ¯æ—¥é…å‘å¤„æ–¹é‡å’Œå‰‚é‡ï¼‰
+    struct DailyStats {
+        std::string date;               // ç»Ÿè®¡æ—¥æœŸ
+        int prescription_count;         // å¤„æ–¹æ•°é‡
+        int total_dosage;               // æ€»å‰‚é‡
+        int in_orders_count;            // å…¥åº“å•æ•°é‡
+        int out_orders_count;           // å‡ºåº“å•æ•°é‡
+        double avg_response_time;       // å¹³å‡å“åº”æ—¶é—´
+        
+        DailyStats(const std::string& d = "") : date(d), prescription_count(0),
+            total_dosage(0), in_orders_count(0), out_orders_count(0), avg_response_time(0.0) {}
+    };
+    
+    // ç»Ÿè®¡åŠŸèƒ½
+    DailyStats getDailyStats(const std::string& date) const;
+    std::vector<MedicineUsage> getMedicineUsage(const std::string& date) const;
+    double getAvgResponseTime(const std::string& date) const;
+    
+    // æ’åºåŠŸèƒ½ï¼ˆé¢˜ç›®è¦æ±‚ï¼šè¿‘ä¸‰æ—¥è¯ç‰©ç”¨é‡å’Œä½¿ç”¨é¢‘æ¬¡çš„æ’åºå’Œå¯¹æ¯”ï¼‰
+    std::vector<MedicineUsage> getUsageRanking(int days = 3) const;
+    std::vector<MedicineUsage> getFrequencyRanking(int days = 3) const;
+    void compareThreeDaysUsage() const;
+    
+    // æŠ¥è¡¨ç”Ÿæˆ
+    void generateDailyReport(const std::string& date) const;
+    void generateUsageReport(int days = 3) const;
+    void generateWarningReport() const;
+    
+    // è¾…åŠ©å‡½æ•°
+    static bool compareByUsage(const MedicineUsage& a, const MedicineUsage& b);
+    static bool compareByFrequency(const MedicineUsage& a, const MedicineUsage& b);
+    
+private:
+    // ç§æœ‰è¾…åŠ©å‡½æ•°
+    std::string getCurrentDate() const;
+    std::vector<std::string> getRecentDates(int days) const;
+    bool isDateInRange(const std::string& date, int days) const;
+};
 
-// Í³¼Æ²Ù×÷½Ó¿Ú
-DailyStats generateDailyReport(OrderedList *inventory, 
-                               CircularQueue *inQueue, 
-                               LinkedStack *outStack,
-                               const char *date);
-
-UsageStats* getTopUsageRanking(OrderedList *inventory, int top_n);  // »ñÈ¡ÓÃÁ¿ÅÅÃû
-UsageStats* getTopFrequencyRanking(OrderedList *inventory, int top_n); // »ñÈ¡Æµ´ÎÅÅÃû
-
-// ¶Ô±È·ÖÎö
-void compareThreeDaysUsage(OrderedList *inventory);  // ½üÈıÈÕÓÃÁ¿¶Ô±È
-
-// Ô¤¾¯Í³¼Æ
-void calculateAvgResponseTime(OrderedList *inventory);  // ¼ÆËãÆ½¾ùÏìÓ¦Ê±¼ä
-int getWarningDrugs(OrderedList *inventory, int *warning_ids); // »ñÈ¡µ±Ç°Ô¤¾¯Ò©Æ·
-
-// ÎÄ¼şÊä³ö
-void exportStatistics(DailyStats stats, UsageStats *usage_ranking, const char *filename);
-
-#endif
+#endif // STATISTICS_H
