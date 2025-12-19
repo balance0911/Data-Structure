@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>中药库存预警系统（网页版）</title>
+  <style>
+    body {
+      font-family: "Microsoft YaHei", sans-serif;
+      margin: 0;
+      padding: 20px;
+      background-color: #f9f9f9;
+    }
+    h1, h2, h3 {
+      color: #2c3e50;
+    }
+    .container {
+      max-width: 1200px;
+      margin: auto;
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    button {
+      margin: 5px;
+      padding: 8px 12px;
+      background: #3498db;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    button:hover { background: #2980b9; }
+    table { width: 100%; border-collapse: collapse; margin: 10px 0; }
+    th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+    th { background-color: #ecf0f1; }
+    input, select { padding: 6px; margin: 4px; width: 150px; }
+    .section { margin-top: 20px; padding-top: 10px; border-top: 1px solid #eee; }
+    .alert { color: red; font-weight: bold; }
+    .success { color: green; }
+    pre { background: #f1f1f1; padding: 10px; border-radius: 4px; overflow-x: auto; }
+  </style>
+</head>
+<body>
+<div class="container">
+  <h1>🌿 中药库存预警系统（网页版）</h1>
+
+  <div id="mainMenu">
+    <button onclick="showSection('medicine')">药品管理</button>
+    <button onclick="showSection('inout')">入库/出库</button>
+    <button onclick="showSection('warning')">预警管理</button>
+    <button onclick="showSection('report')">统计报表</button>
+    <button onclick="showSection('ledger')">库存台账</button>
+  </div>
+
+  <!-- 药品管理 -->
+  <div id="medicineSection" class="section" style="display:none;">
+    <h2>💊 药品管理</h2>
+    <button onclick="addMedicineForm()">新增药品</button>
+    <button onclick="listAllMedicines()">显示所有药品</button>
+    <button onclick="queryMedicineForm()">查询药品</button>
+    <div id="medicineForm" style="display:none; margin-top:10px;">
+      <h3 id="formTitle">新增药品</h3>
+      <input type="hidden" id="editId" />
+      <label>ID: <input type="number" id="medId" min="1" /></label><br/>
+      <label>名称: <input type="text" id="medName" /></label><br/>
+      <label>产地: <input type="text" id="medOrigin" /></label><br/>
+      <label>规格: <input type="text" id="medSpec" /></label><br/>
+      <label>库存(g): <input type="number" id="medStock" min="0" /></label><br/>
+      <label>预警阈值(g): <input type="number" id="medThreshold" min="0" /></label><br/>
+      <button onclick="saveMedicine()">保存</button>
+      <button onclick="document.getElementById('medicineForm').style.display='none'">取消</button>
+    </div>
+    <div id="medicineList"></div>
+  </div>
+
+  <!-- 入库/出库 -->
+  <div id="inoutSection" class="section" style="display:none;">
+    <h2>📦 入库 / 📤 出库</h2>
+    <div>
+      <h3>入库</h3>
+      <label>药品ID: <input type="number" id="inMedId" /></label>
+      <label>数量(g): <input type="number" id="inQty" min="1" /></label>
+      <label>操作员: <input type="text" id="inOperator" /></label>
+      <button onclick="doIn()">执行入库</button>
+    </div>
+    <div style="margin-top:15px;">
+      <h3>出库</h3>
+      <label>药品ID: <input type="number" id="outMedId" /></label>
+      <label>数量(g): <input type="number" id="outQty" min="1" /></label>
+      <label>处方号: <input type="text" id="prescriptionNo" /></label>
+      <button onclick="doOut()">执行出库</button>
+    </div>
+    <div id="inoutLog" style="margin-top:10px; height:100px; overflow-y:auto;"></div>
+  </div>
+
+  <!-- 预警管理 -->
+  <div id="warningSection" class="section" style="display:none;">
+    <h2>⚠️ 预警管理</h2>
+    <button onclick="updateAllWarnings()">批量更新预警状态</button>
+    <button onclick="setThresholdByUsage()">按近3日用量设置阈值</button>
+    <div id="warningList"></div>
+  </div>
+
+  <!-- 统计报表 -->
+  <div id="reportSection" class="section" style="display:none;">
+    <h2>📊 统计报表</h2>
+    <button onclick="showDailyReport()">生成日报表</button>
+    <button onclick="showUsageRanking()">近3日用量排名</button>
+    <button onclick="showFrequencyRanking()">近3日频次排名</button>
+    <div id="reportOutput" style="margin-top:10px;"></div>
+  </div>
+
+  <!-- 库存台账 -->
+  <div id="ledgerSection" class="section" style="display:none;">
+    <h2>📒 库存台账</h2>
+    <button onclick="generateLedger()">生成当日台账</button>
+    <div id="ledgerTable"></div>
+  </div>
+
+</div>
+
+<script>
+// ================== 数据初始化 ==================
+let medicines = []; // 药品列表 [{id, name, origin, spec, stock, warning_threshold, is_warning, usage_history: [7], last_usage}]
+let inOrders = [];  // 入库单队列 [{med_id, quantity, operator_name, date}]
+let outOrders = []; // 出库单栈（数组，顶部在末尾）[{med_id, quantity, prescription_no, date}]
+
+// 当前日期工具
+function today() {
+  const d = new Date();
+  return d.toISOString().split('T')[0]; // "YYYY-MM-DD"
+}
+
+// 加载 CSV 数据（模拟）
+function loadInitialData() {
+  // 解析药物基本信息.csv
+  const basicCSV = `编号,名称,产地,规格,库存量(g),基础阈值(g)
+ZY0001,麻黄,内蒙古,饮片/500g,12500,3000
+ZY0002,桂枝,广西,饮片/500g,8500,2000
+ZY0003,紫苏叶,江苏,饮片/250g,6200,1500
+ZY0004,荆芥,江西,饮片/500g,7800,1800
+ZY0005,防风,黑龙江,饮片/500g,9200,2200
+ZY0006,羌活,四川,饮片/500g,6800,1600
+ZY0007,白芷,浙江,饮片/500g,7500,1700
+ZY0008,细辛,辽宁,饮片/100g,3500,800
+ZY0009,薄荷,江苏,饮片/250g,4800,1200
+ZY0010,菊花,安徽,饮片/500g,10500,2500`;
+
+  const lines = basicCSV.trim().split('\n');
+  for (let i = 1; i < lines.length; i++) {
+    const parts = lines[i].split(',');
+    if (parts.length >= 6) {
+      const id = parseInt(parts[0].replace('ZY', ''));
+      medicines.push({
+        id,
+        name: parts[1],
+        origin: parts[2],
+        spec: parts[3],
+        stock: parseInt(parts[4]),
+        warning_threshold: parseInt(parts[5]),
+        is_warning: false,
+        usage_history: Array(7).fill(0),
+        last_usage: 0
+      });
+    }
+  }
+
+  // 初始化近7日用量（仅前5种有数据）
+  const usageCSV = `хуфз,бИ╩ф(ZY0001),╧Пж╕(ZY0002),вокур╤(ZY0003),╬ё╫Ф(ZY0004),╥ю╥Г(ZY0005)
+D-6,850,620,480,520,710
+D-5,920,580,510,490,680
+D-4,780,650,460,530,720
+D-3,1050,720,550,580,810
+D-2,980,680,520,560,790
+D-1,1100,750,590,610,850
+D-0,890,640,500,540,730`;
+  
+  const usageLines = usageCSV.trim().split('\n');
+  const headers = usageLines[0].split(',').slice(1); // 跳过第一列
+  const medIdsFromHeader = headers.map(h => parseInt(h.match(/\d+/)[0])); // 提取 ZY0001 → 1
+
+  for (let dayIdx = 0; dayIdx < 7; dayIdx++) {
+    const values = usageLines[dayIdx + 1].split(',').slice(1);
+    for (let j = 0; j < values.length; j++) {
+      const medId = medIdsFromHeader[j];
+      const med = medicines.find(m => m.id === medId);
+      if (med) {
+        med.usage_history[dayIdx] = parseInt(values[j]);
+        if (dayIdx === 6) med.last_usage = parseInt(values[j]);
+      }
+    }
+  }
+
+  console.log("初始数据加载完成", medicines);
+}
+
+// ================== 工具函数 ==================
+function findMedicine(id) {
+  return medicines.find(m => m.id === id);
+}
+
+function log(msg) {
+  const logDiv = document.getElementById('inoutLog');
+  logDiv.innerHTML += `<div>${new Date().toLocaleTimeString()} - ${msg}</div>`;
+  logDiv.scrollTop = logDiv.scrollHeight;
+}
+
+// ================== 药品管理 ==================
+function addMedicineForm() {
+  document.getElementById('formTitle').textContent = '新增药品';
+  document.getElementById('editId').value = '';
+  ['medId','medName','medOrigin','medSpec','medStock','medThreshold'].forEach(id => {
+    document.getElementById(id).value = '';
+  });
+  document.getElementById('medicineForm').style.display = 'block';
+}
+
+function saveMedicine() {
+  const id = parseInt(document.getElementById('medId').value);
+  const existing = findMedicine(id);
+  const isEdit = document.getElementById('editId').value !== '';
+
+  if (!isEdit && existing) {
+    alert('药品ID已存在！');
+    return;
+  }
+
+  const med = {
+    id,
+    name: document.getElementById('medName').value,
+    origin: document.getElementById('medOrigin').value,
+    spec: document.getElementById('medSpec').value,
+    stock: parseInt(document.getElementById('medStock').value) || 0,
+    warning_threshold: parseInt(document.getElementById('medThreshold').value) || 0,
+    is_warning: false,
+    usage_history: Array(7).fill(0),
+    last_usage: 0
+  };
+
+  if (isEdit) {
+    const idx = medicines.findIndex(m => m.id === id);
+    medicines[idx] = med;
+  } else {
+    medicines.push(med);
+  }
+
+  document.getElementById('medicineForm').style.display = 'none';
+  listAllMedicines();
+  log(`✅ ${isEdit ? '修改' : '新增'}药品: ${med.name} (ID:${med.id})`);
+}
+
+function listAllMedicines() {
+  let html = `<table><tr><th>ID</th><th>名称</th><th>产地</th><th>规格</th><th>库存(g)</th><th>阈值(g)</th><th>状态</th><th>操作</th></tr>`;
+  medicines.forEach(m => {
+    html += `<tr>
+      <td>${m.id}</td>
+      <td>${m.name}</td>
+      <td>${m.origin}</td>
+      <td>${m.spec}</td>
+      <td>${m.stock}</td>
+      <td>${m.warning_threshold}</td>
+      <td style="color:${m.is_warning ? 'red' : 'green'}">${m.is_warning ? '预警' : '正常'}</td>
+      <td>
+        <button onclick="editMedicine(${m.id})">编辑</button>
+        <button onclick="deleteMedicine(${m.id})">删除</button>
+      </td>
+    </tr>`;
+  });
+  html += '</table>';
+  document.getElementById('medicineList').innerHTML = html;
+}
+
+function editMedicine(id) {
+  const med = findMedicine(id);
+  if (!med) return;
+  document.getElementById('formTitle').textContent = '编辑药品';
+  document.getElementById('editId').value = 'edit';
+  document.getElementById('medId').value = med.id;
+  document.getElementById('medName').value = med.name;
+  document.getElementById('medOrigin').value = med.origin;
+  document.getElementById('medSpec').value = med.spec;
+  document.getElementById('medStock').value = med.stock;
+  document.getElementById('medThreshold').value = med.warning_threshold;
+  document.getElementById('medicineForm').style.display = 'block';
+}
+
+function deleteMedicine(id) {
+  if (!confirm('确定删除？')) return;
+  medicines = medicines.filter(m => m.id !== id);
+  listAllMedicines();
+  log(`🗑️ 删除药品 ID:${id}`);
+}
+
+function queryMedicineForm() {
+  const keyword = prompt('请输入药品名称关键字:');
+  if (!keyword) return;
+  const matches = medicines.filter(m => m.name.includes(keyword));
+  let html = `<h3>查询结果（共${matches.length}条）</h3><table><tr><th>ID</th><th>名称</th><th>库存</th><th>状态</th></tr>`;
+  matches.forEach(m => {
+    html += `<tr><td>${m.id}</td><td>${m.name}</td><td>${m.stock}</td><td style="color:${m.is_warning?'red':'green'}">${m.is_warning?'预警':'正常'}</td></tr>`;
+  });
+  html += '</table>';
+  document.getElementById('medicineList').innerHTML = html;
+}
+
+// ================== 入库/出库 ==================
+function doIn() {
+  const id = parseInt(document.getElementById('inMedId').value);
+  const qty = parseInt(document.getElementById('inQty').value);
+  const op = document.getElementById('inOperator').value;
+  const med = findMedicine(id);
+  if (!med) {
+    log('❌ 药品ID不存在');
+    return;
+  }
+  med.stock += qty;
+  inOrders.push({ med_id: id, quantity: qty, operator_name: op, date: today() });
+  checkWarning(id);
+  log(`📥 入库成功: ${med.name} +${qty}g, 操作员: ${op}, 当前库存: ${med.stock}g`);
+}
+
+function doOut() {
+  const id = parseInt(document.getElementById('outMedId').value);
+  const qty = parseInt(document.getElementById('outQty').value);
+  const rx = document.getElementById('prescriptionNo').value;
+  const med = findMedicine(id);
+  if (!med) {
+    log('❌ 药品ID不存在');
+    return;
+  }
+  if (med.stock < qty) {
+    log(`❌ 库存不足！当前: ${med.stock}g, 请求: ${qty}g`);
+    return;
+  }
+  med.stock -= qty;
+  outOrders.push({ med_id: id, quantity: qty, prescription_no: rx, date: today() });
+
+  // 更新今日用量（usage_history[6]）
+  med.usage_history[6] += qty;
+  med.last_usage = med.usage_history[6];
+
+  checkWarning(id);
+  log(`📤 出库成功: ${med.name} -${qty}g, 处方: ${rx}, 库存: ${med.stock}g`);
+}
+
+// ================== 预警逻辑 ==================
+function calculateThreeDayAverage(med) {
+  const sum = med.usage_history[4] + med.usage_history[5] + med.usage_history[6];
+  const count = 3;
+  return sum / count;
+}
+
+function setThresholdByUsage() {
+  medicines.forEach(med => {
+    const avg = calculateThreeDayAverage(med);
+    if (avg > 0) {
+      med.warning_threshold = Math.max(1, Math.floor(avg * 0.1));
+    }
+  });
+  log('🔄 已根据近3日用量更新所有药品预警阈值');
+  updateAllWarnings();
+}
+
+function checkWarning(id) {
+  const med = findMedicine(id);
+  if (!med) return;
+
+  const wasWarning = med.is_warning;
+  if (med.stock < med.warning_threshold) {
+    med.is_warning = true;
+    if (!wasWarning) {
+      log(`⚠️ 预警触发: ${med.name} (库存${med.stock} < 阈值${med.warning_threshold})`);
+    }
+  } else {
+    if (wasWarning) {
+      med.is_warning = false;
+      log(`✅ 预警解除: ${med.name}`);
+    }
+  }
+}
+
+function updateAllWarnings() {
+  medicines.forEach(m => checkWarning(m.id));
+  showWarningList();
+}
+
+function showWarningList() {
+  const warnings = medicines.filter(m => m.is_warning);
+  let html = '<h3>当前预警药品</h3>';
+  if (warnings.length === 0) {
+    html += '<p>🟢 无预警药品</p>';
+  } else {
+    html += '<ul>';
+    warnings.forEach(m => {
+      html += `<li>${m.name} (ID:${m.id}) - 库存: ${m.stock}g, 阈值: ${m.warning_threshold}g</li>`;
+    });
+    html += '</ul>';
+  }
+  document.getElementById('warningList').innerHTML = html;
+}
+
+// ================== 统计报表 ==================
+function getDailyOutTotal(date) {
+  return outOrders.filter(o => o.date === date).reduce((sum, o) => sum + o.quantity, 0);
+}
+
+function getMedicineOutTotal(medId, date) {
+  return outOrders.filter(o => o.med_id === medId && o.date === date).reduce((sum, o) => sum + o.quantity, 0);
+}
+
+function getPrescriptionCount(date) {
+  return outOrders.filter(o => o.date === date).length;
+}
+
+function showDailyReport() {
+  const date = today();
+  const totalDosage = getDailyOutTotal(date);
+  const rxCount = getPrescriptionCount(date);
+  const avgDosage = rxCount ? (totalDosage / rxCount).toFixed(2) : 0;
+
+  let html = `<h3>📅 ${date} 日报表</h3>`;
+  html += `<p>处方数量: ${rxCount}</p>`;
+  html += `<p>总剂量: ${totalDosage}g</p>`;
+  html += `<p>平均每方: ${avgDosage}g</p>`;
+
+  // 用量排名
+  const usageMap = {};
+  outOrders.filter(o => o.date === date).forEach(o => {
+    usageMap[o.med_id] = (usageMap[o.med_id] || 0) + o.quantity;
+  });
+  const ranking = Object.entries(usageMap)
+    .map(([id, qty]) => ({ id: parseInt(id), qty }))
+    .sort((a, b) => b.qty - a.qty)
+    .slice(0, 5);
+
+  html += `<h4>当日用量Top5:</h4><ol>`;
+  ranking.forEach(r => {
+    const med = findMedicine(r.id);
+    html += `<li>${med?.name || '未知'}: ${r.qty}g</li>`;
+  });
+  html += '</ol>';
+
+  document.getElementById('reportOutput').innerHTML = html;
+}
+
+function showUsageRanking() {
+  const recentDates = [today()];
+  // 简化：只统计今天
+  const usageMap = {};
+  outOrders.filter(o => recentDates.includes(o.date)).forEach(o => {
+    usageMap[o.med_id] = (usageMap[o.med_id] || 0) + o.quantity;
+  });
+  const ranking = Object.entries(usageMap)
+    .map(([id, qty]) => ({ id: parseInt(id), qty }))
+    .sort((a, b) => b.qty - a.qty)
+    .slice(0, 5);
+
+  let html = `<h3>近3日用量排名（简化版）</h3><ol>`;
+  ranking.forEach(r => {
+    const med = findMedicine(r.id);
+    html += `<li>${med?.name || '未知'} (ID:${r.id}): ${r.qty}g</li>`;
+  });
+  html += '</ol>';
+  document.getElementById('reportOutput').innerHTML = html;
+}
+
+function showFrequencyRanking() {
+  const freqMap = {};
+  outOrders.forEach(o => {
+    freqMap[o.med_id] = (freqMap[o.med_id] || 0) + 1;
+  });
+  const ranking = Object.entries(freqMap)
+    .map(([id, freq]) => ({ id: parseInt(id), freq }))
+    .sort((a, b) => b.freq - a.freq)
+    .slice(0, 5);
+
+  let html = `<h3>近3日频次排名</h3><ol>`;
+  ranking.forEach(r => {
+    const med = findMedicine(r.id);
+    html += `<li>${med?.name || '未知'} (ID:${r.id}): ${r.freq}次</li>`;
+  });
+  html += '</ol>';
+  document.getElementById('reportOutput').innerHTML = html;
+}
+
+// ================== 库存台账 ==================
+function generateLedger() {
+  const date = today();
+  let html = `<table><tr><th>药品ID</th><th>名称</th><th>前日结余</th><th>当日入库</th><th>当日出库</th><th>当日结余</th></tr>`;
+  let totalIn = 0, totalOut = 0;
+
+  medicines.forEach(med => {
+    const dailyIn = inOrders.filter(o => o.med_id === med.id && o.date === date).reduce((s, o) => s + o.quantity, 0);
+    const dailyOut = getMedicineOutTotal(med.id, date);
+    const prevBalance = med.stock - dailyIn + dailyOut;
+
+    html += `<tr>
+      <td>${med.id}</td>
+      <td>${med.name}</td>
+      <td>${prevBalance}</td>
+      <td>${dailyIn}</td>
+      <td>${dailyOut}</td>
+      <td>${med.stock}</td>
+    </tr>`;
+
+    totalIn += dailyIn;
+    totalOut += dailyOut;
+  });
+
+  html += `<tr><td colspan="3">合计</td><td>${totalIn}</td><td>${totalOut}</td><td></td></tr>`;
+  html += '</table>';
+  document.getElementById('ledgerTable').innerHTML = html;
+}
+
+// ================== UI 控制 ==================
+function showSection(section) {
+  ['medicine','inout','warning','report','ledger'].forEach(s => {
+    document.getElementById(s + 'Section').style.display = 'none';
+  });
+  document.getElementById(section + 'Section').style.display = 'block';
+}
+
+// ================== 启动 ==================
+loadInitialData();
+showSection('medicine');
+listAllMedicines();
+</script>
+</body>
+</html>
