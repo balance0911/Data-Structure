@@ -1,0 +1,1747 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>中药库存预警系统</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    :root {
+      --primary-color: #2a9d8f;
+      --primary-dark: #1d6f64;
+      --primary-light: #76c7ba;
+      --secondary-color: #264653;
+      --accent-color: #e9c46a;
+      --warning-color: #e76f51;
+      --success-color: #2a9d8f;
+      --light-bg: #f8f9fa;
+      --card-bg: #ffffff;
+      --text-dark: #264653;
+      --text-light: #6c757d;
+      --border-radius: 12px;
+      --shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+      --shadow-light: 0 4px 12px rgba(0, 0, 0, 0.05);
+      --transition: all 0.3s ease;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: "Segoe UI", "Microsoft YaHei", sans-serif;
+      background: linear-gradient(135deg, #f0f7fa 0%, #e6f4f1 100%);
+      color: var(--text-dark);
+      line-height: 1.6;
+      padding: 20px;
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 1300px;
+      margin: 0 auto;
+      background-color: var(--card-bg);
+      border-radius: var(--border-radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    /* 头部样式 */
+    .header {
+      background: linear-gradient(to right, var(--secondary-color), var(--primary-dark));
+      color: white;
+      padding: 25px 30px;
+      border-radius: var(--border-radius) var(--border-radius) 0 0;
+    }
+
+    .header h1 {
+      font-size: 2.2rem;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+
+    .header p {
+      font-size: 1rem;
+      opacity: 0.85;
+      max-width: 800px;
+    }
+
+    /* 导航菜单 */
+    .nav-menu {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      padding: 20px 30px;
+      background-color: var(--light-bg);
+      border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    }
+
+    .nav-btn {
+      padding: 14px 22px;
+      background-color: white;
+      color: var(--text-dark);
+      border: 2px solid transparent;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: var(--transition);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      box-shadow: var(--shadow-light);
+    }
+
+    .nav-btn:hover {
+      background-color: var(--primary-color);
+      color: white;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(42, 157, 143, 0.25);
+    }
+
+    .nav-btn.active {
+      background-color: var(--primary-color);
+      color: white;
+      border-color: var(--primary-light);
+    }
+
+    /* 内容区域 */
+    .content-section {
+      padding: 30px;
+      display: none;
+    }
+
+    .content-section.active {
+      display: block;
+      animation: fadeIn 0.5s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .section-title {
+      font-size: 1.8rem;
+      color: var(--secondary-color);
+      margin-bottom: 25px;
+      padding-bottom: 15px;
+      border-bottom: 2px solid var(--primary-light);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .section-title i {
+      color: var(--primary-color);
+      background-color: rgba(42, 157, 143, 0.1);
+      padding: 10px;
+      border-radius: 50%;
+    }
+
+    /* 按钮样式 */
+    .btn {
+      padding: 12px 20px;
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: var(--transition);
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-primary {
+      background-color: var(--primary-color);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background-color: var(--primary-dark);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 12px rgba(42, 157, 143, 0.3);
+    }
+
+    .btn-secondary {
+      background-color: var(--secondary-color);
+      color: white;
+    }
+
+    .btn-secondary:hover {
+      background-color: #1a3645;
+      transform: translateY(-2px);
+    }
+
+    .btn-warning {
+      background-color: var(--warning-color);
+      color: white;
+    }
+
+    .btn-warning:hover {
+      background-color: #d45c3e;
+      transform: translateY(-2px);
+    }
+
+    .btn-success {
+      background-color: var(--success-color);
+      color: white;
+    }
+
+    .btn-success:hover {
+      background-color: var(--primary-dark);
+      transform: translateY(-2px);
+    }
+
+    .btn-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 25px;
+    }
+
+    /* 卡片样式 */
+    .card {
+      background-color: var(--card-bg);
+      border-radius: var(--border-radius);
+      padding: 25px;
+      box-shadow: var(--shadow-light);
+      margin-bottom: 25px;
+      border-left: 5px solid var(--primary-color);
+      transition: var(--transition);
+    }
+
+    .card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 12px 28px rgba(0, 0, 0, 0.1);
+    }
+
+    .card-title {
+      font-size: 1.3rem;
+      color: var(--secondary-color);
+      margin-bottom: 15px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    /* 表单样式 */
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    .form-label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 600;
+      color: var(--text-dark);
+    }
+
+    .form-input {
+      width: 100%;
+      padding: 14px 16px;
+      border: 2px solid #e0e6ed;
+      border-radius: 8px;
+      font-size: 1rem;
+      transition: var(--transition);
+    }
+
+    .form-input:focus {
+      outline: none;
+      border-color: var(--primary-color);
+      box-shadow: 0 0 0 3px rgba(42, 157, 143, 0.2);
+    }
+
+    .form-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+      margin-bottom: 15px;
+    }
+
+    .form-col {
+      flex: 1;
+      min-width: 200px;
+    }
+
+    /* 表格样式 */
+    .table-container {
+      overflow-x: auto;
+      border-radius: var(--border-radius);
+      box-shadow: var(--shadow-light);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 10px 0;
+    }
+
+    th {
+      background-color: var(--primary-color);
+      color: white;
+      font-weight: 600;
+      padding: 16px 12px;
+      text-align: left;
+    }
+
+    td {
+      padding: 14px 12px;
+      border-bottom: 1px solid #eef2f7;
+    }
+
+    tr:hover {
+      background-color: #f8fafc;
+    }
+
+    tr:nth-child(even) {
+      background-color: #f8fafc;
+    }
+
+    /* 预警状态 */
+    .status-normal {
+      color: var(--success-color);
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .status-warning {
+      color: var(--warning-color);
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* 日志区域 */
+    .log-container {
+      max-height: 200px;
+      overflow-y: auto;
+      padding: 15px;
+      background-color: #f8fafc;
+      border-radius: 8px;
+      border: 1px solid #e0e6ed;
+      margin-top: 20px;
+    }
+
+    .log-entry {
+      padding: 8px 0;
+      border-bottom: 1px solid #eef2f7;
+      font-size: 0.9rem;
+    }
+
+    .log-entry:last-child {
+      border-bottom: none;
+    }
+
+    /* 统计卡片 */
+    .stats-container {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+      gap: 20px;
+      margin-bottom: 30px;
+    }
+
+    .stat-card {
+      background-color: var(--card-bg);
+      border-radius: var(--border-radius);
+      padding: 25px;
+      text-align: center;
+      box-shadow: var(--shadow-light);
+      transition: var(--transition);
+    }
+
+    .stat-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 12px 28px rgba(0, 0, 0, 0.1);
+    }
+
+    .stat-icon {
+      font-size: 2.5rem;
+      color: var(--primary-color);
+      margin-bottom: 15px;
+    }
+
+    .stat-value {
+      font-size: 2.2rem;
+      font-weight: 700;
+      color: var(--secondary-color);
+      margin-bottom: 8px;
+    }
+
+    .stat-label {
+      font-size: 1rem;
+      color: var(--text-light);
+    }
+
+    /* 响应式设计 */
+    @media (max-width: 768px) {
+      .nav-menu {
+        justify-content: center;
+      }
+
+      .nav-btn {
+        flex: 1;
+        min-width: 150px;
+        justify-content: center;
+      }
+
+      .form-row {
+        flex-direction: column;
+      }
+
+      .btn-group {
+        justify-content: center;
+      }
+
+      .header h1 {
+        font-size: 1.8rem;
+      }
+
+      .stats-container {
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      }
+    }
+
+    /* 自定义滚动条 */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: #f1f1f1;
+      border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: var(--primary-light);
+      border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--primary-color);
+    }
+
+    /* 预警弹窗样式 */
+    .alert-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.5);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+      animation: fadeIn 0.3s ease;
+    }
+
+    .alert-content {
+      background-color: var(--card-bg);
+      border-radius: var(--border-radius);
+      padding: 30px;
+      max-width: 500px;
+      width: 90%;
+      box-shadow: var(--shadow);
+      border-left: 6px solid var(--warning-color);
+      position: relative;
+      animation: slideUp 0.3s ease;
+    }
+
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .alert-header {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      margin-bottom: 15px;
+    }
+
+    .alert-icon {
+      color: var(--warning-color);
+      font-size: 2rem;
+    }
+
+    .alert-title {
+      font-size: 1.5rem;
+      color: var(--warning-color);
+      font-weight: 600;
+    }
+
+    .alert-message {
+      color: var(--text-dark);
+      margin-bottom: 20px;
+      line-height: 1.6;
+    }
+
+    .alert-close {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      background: none;
+      border: none;
+      font-size: 1.5rem;
+      color: var(--text-light);
+      cursor: pointer;
+      transition: var(--transition);
+    }
+
+    .alert-close:hover {
+      color: var(--warning-color);
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+  <!-- 头部 -->
+  <div class="header">
+    <h1><i class="fas fa-leaf"></i> 中药库存预警系统</h1>
+    <p>智能化管理中药库存，实时预警，保障药品供应安全。系统提供药品管理、出入库记录、预警监控和统计报表功能。</p>
+  </div>
+
+  <!-- 导航菜单 -->
+  <div class="nav-menu">
+    <button class="nav-btn active" data-section="medicine">
+      <i class="fas fa-pills"></i> 药品管理
+    </button>
+    <button class="nav-btn" data-section="inout">
+      <i class="fas fa-exchange-alt"></i> 入库/出库
+    </button>
+    <button class="nav-btn" data-section="warning">
+      <i class="fas fa-exclamation-triangle"></i> 预警管理
+    </button>
+    <button class="nav-btn" data-section="report">
+      <i class="fas fa-chart-bar"></i> 统计报表
+    </button>
+    <button class="nav-btn" data-section="ledger">
+      <i class="fas fa-book"></i> 库存台账
+    </button>
+  </div>
+
+  <!-- 药品管理 -->
+  <div id="medicineSection" class="content-section active">
+    <h2 class="section-title"><i class="fas fa-pills"></i> 药品管理</h2>
+
+    <div class="btn-group">
+      <button class="btn btn-primary" onclick="addMedicineForm()">
+        <i class="fas fa-plus"></i> 新增药品
+      </button>
+      <button class="btn btn-secondary" onclick="listAllMedicines()">
+        <i class="fas fa-list"></i> 显示所有药品
+      </button>
+      <button class="btn btn-primary" onclick="queryMedicineForm()">
+        <i class="fas fa-search"></i> 查询药品
+      </button>
+    </div>
+
+    <!-- 药品表单 -->
+    <div id="medicineForm" class="card" style="display:none;">
+      <h3 class="card-title" id="formTitle"><i class="fas fa-edit"></i> 新增药品</h3>
+      <input type="hidden" id="editId" />
+      <div class="form-row">
+        <div class="form-col">
+          <label class="form-label">药品ID</label>
+          <input type="number" id="medId" min="1" class="form-input" placeholder="请输入药品ID">
+        </div>
+        <div class="form-col">
+          <label class="form-label">药品名称</label>
+          <input type="text" id="medName" class="form-input" placeholder="请输入药品名称">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-col">
+          <label class="form-label">产地</label>
+          <input type="text" id="medOrigin" class="form-input" placeholder="请输入产地">
+        </div>
+        <div class="form-col">
+          <label class="form-label">规格</label>
+          <input type="text" id="medSpec" class="form-input" placeholder="请输入规格">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-col">
+          <label class="form-label">库存(g)</label>
+          <input type="number" id="medStock" min="0" class="form-input" placeholder="请输入库存量">
+        </div>
+        <div class="form-col">
+          <label class="form-label">预警阈值(g)</label>
+          <input type="number" id="medThreshold" min="0" class="form-input" placeholder="请输入预警阈值">
+        </div>
+      </div>
+      <div class="btn-group">
+        <button class="btn btn-success" onclick="saveMedicine()">
+          <i class="fas fa-save"></i> 保存
+        </button>
+        <button class="btn" onclick="document.getElementById('medicineForm').style.display='none'" style="background-color: #e0e6ed;">
+          <i class="fas fa-times"></i> 取消
+        </button>
+      </div>
+    </div>
+
+    <!-- 药品列表 -->
+    <div id="medicineList" class="table-container"></div>
+  </div>
+
+  <!-- 入库/出库 -->
+  <div id="inoutSection" class="content-section">
+    <h2 class="section-title"><i class="fas fa-exchange-alt"></i> 入库 / 出库</h2>
+
+    <div class="form-row">
+      <!-- 入库 -->
+      <div class="card" style="flex: 1;">
+        <h3 class="card-title"><i class="fas fa-sign-in-alt text-success"></i> 入库操作</h3>
+        <div class="form-group">
+          <label class="form-label">药品ID</label>
+          <input type="number" id="inMedId" class="form-input" placeholder="请输入药品ID">
+        </div>
+        <div class="form-group">
+          <label class="form-label">数量(g)</label>
+          <input type="number" id="inQty" min="1" class="form-input" placeholder="请输入入库数量">
+        </div>
+        <div class="form-group">
+          <label class="form-label">操作员</label>
+          <input type="text" id="inOperator" class="form-input" placeholder="请输入操作员姓名">
+        </div>
+        <button class="btn btn-success" onclick="doIn()">
+          <i class="fas fa-arrow-down"></i> 执行入库
+        </button>
+      </div>
+
+      <!-- 出库 -->
+      <div class="card" style="flex: 1;">
+        <h3 class="card-title"><i class="fas fa-sign-out-alt text-warning"></i> 出库操作</h3>
+        <div class="form-group">
+          <label class="form-label">药品ID</label>
+          <input type="number" id="outMedId" class="form-input" placeholder="请输入药品ID">
+        </div>
+        <div class="form-group">
+          <label class="form-label">数量(g)</label>
+          <input type="number" id="outQty" min="1" class="form-input" placeholder="请输入出库数量">
+        </div>
+        <div class="form-group">
+          <label class="form-label">处方号</label>
+          <input type="text" id="prescriptionNo" class="form-input" placeholder="请输入处方号">
+        </div>
+        <button class="btn btn-warning" onclick="doOut()">
+          <i class="fas fa-arrow-up"></i> 执行出库
+        </button>
+      </div>
+    </div>
+
+    <!-- 操作日志 -->
+    <div class="card">
+      <h3 class="card-title"><i class="fas fa-history"></i> 操作日志</h3>
+      <div id="inoutLog" class="log-container"></div>
+    </div>
+  </div>
+
+  <!-- 预警管理 -->
+  <div id="warningSection" class="content-section">
+    <h2 class="section-title"><i class="fas fa-exclamation-triangle"></i> 预警管理</h2>
+
+    <div class="btn-group">
+      <button class="btn btn-warning" onclick="updateAllWarnings()">
+        <i class="fas fa-sync-alt"></i> 批量更新预警状态
+      </button>
+      <button class="btn btn-primary" onclick="setThresholdByUsage()">
+        <i class="fas fa-calculator"></i> 按近3日用量设置阈值
+      </button>
+      <button class="btn btn-secondary" onclick="showResponseTimeReport()">
+        <i class="fas fa-clock"></i> 响应时间报表
+      </button>
+    </div>
+
+    <!-- 预警列表 -->
+    <div class="card">
+      <h3 class="card-title"><i class="fas fa-bell"></i> 当前预警药品</h3>
+      <div id="warningList">
+        <!-- 这里会动态显示预警药品 -->
+      </div>
+    </div>
+
+    <!-- 响应时间报表区域 -->
+    <div id="responseTimeReport" class="card" style="display:none; margin-top: 20px;">
+      <h3 class="card-title"><i class="fas fa-clock"></i> 预警响应时间报表</h3>
+      <div id="responseTimeContent">
+        <!-- 响应时间内容会动态生成 -->
+      </div>
+    </div>
+  </div>
+
+  <!-- 统计报表 -->
+  <div id="reportSection" class="content-section">
+    <h2 class="section-title"><i class="fas fa-chart-bar"></i> 统计报表</h2>
+
+    <div class="btn-group">
+      <button class="btn btn-primary" onclick="showDailyReport()">
+        <i class="fas fa-calendar-day"></i> 生成日报表
+      </button>
+      <button class="btn btn-secondary" onclick="showUsageRanking()">
+        <i class="fas fa-chart-line"></i> 近3日用量排名
+      </button>
+      <button class="btn btn-primary" onclick="showFrequencyRanking()">
+        <i class="fas fa-sort-amount-down"></i> 近3日频次排名
+      </button>
+      <button class="btn btn-warning" onclick="showAvgResponseTime()">
+        <i class="fas fa-stopwatch"></i> 平均响应时间
+      </button>
+    </div>
+
+    <div id="reportOutput">
+      <div class="stats-container">
+        <div class="stat-card">
+          <div class="stat-icon">
+            <i class="fas fa-boxes"></i>
+          </div>
+          <div class="stat-value" id="totalMedicines">0</div>
+          <div class="stat-label">药品总数</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">
+            <i class="fas fa-exclamation-triangle"></i>
+          </div>
+          <div class="stat-value" id="warningCount">0</div>
+          <div class="stat-label">预警药品</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">
+            <i class="fas fa-prescription-bottle-alt"></i>
+          </div>
+          <div class="stat-value" id="todayOut">0</div>
+          <div class="stat-label">今日出库量(g)</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">
+            <i class="fas fa-clock"></i>
+          </div>
+          <div class="stat-value" id="avgResponseTime">0</div>
+          <div class="stat-label">平均响应(分)</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 库存台账 -->
+  <div id="ledgerSection" class="content-section">
+    <h2 class="section-title"><i class="fas fa-book"></i> 库存台账</h2>
+
+    <div class="btn-group">
+      <button class="btn btn-primary" onclick="generateLedger()">
+        <i class="fas fa-file-export"></i> 生成当日台账
+      </button>
+    </div>
+
+    <div class="card">
+      <h3 class="card-title"><i class="fas fa-table"></i> 库存台账详情</h3>
+      <div id="ledgerTable">
+        <p style="text-align: center; color: var(--text-light); padding: 30px;">
+          <i class="fas fa-file-alt fa-2x" style="color: var(--primary-light); margin-bottom: 15px; display: block;"></i>
+          点击"生成当日台账"按钮查看库存详情
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 预警弹窗 -->
+<div id="alertModal" class="alert-modal">
+  <div class="alert-content">
+    <button class="alert-close" onclick="closeAlert()">×</button>
+    <div class="alert-header">
+      <i class="fas fa-exclamation-triangle alert-icon"></i>
+      <div class="alert-title">库存预警提醒</div>
+    </div>
+    <div class="alert-message" id="alertMessage">
+      药材库存已达预警阈值，请尽快补充库存。
+    </div>
+    <button class="btn btn-primary" onclick="closeAlert()">
+      <i class="fas fa-check"></i> 我知道了
+    </button>
+  </div>
+</div>
+
+<script>
+// ================== 数据初始化 ==================
+let medicines = []; // 药品列表 [{id, name, origin, spec, stock, warning_threshold, is_warning, usage_history: [7], last_usage}]
+let inOrders = [];  // 入库单队列 [{med_id, quantity, operator_name, date}]
+let outOrders = []; // 出库单栈（数组，顶部在末尾）[{med_id, quantity, prescription_no, date}]
+
+// 当前日期工具
+function today() {
+  const d = new Date();
+  return d.toISOString().split('T')[0]; // "YYYY-MM-DD"
+}
+
+// 加载 CSV 数据（模拟）
+function loadInitialData() {
+  // 解析药物基本信息.csv
+  const basicCSV = `编号,名称,产地,规格,库存量(g),基础阈值(g)
+ZY0001,麻黄,内蒙古,饮片/500g,12500,3000,
+ZY0002,桂枝,广西,饮片/500g,8500,2000,
+ZY0003,紫苏叶,江苏,饮片/250g,6200,1500,
+ZY0004,荆芥,江西,饮片/500g,7800,1800,
+ZY0005,防风,黑龙江,饮片/500g,9200,2200,
+ZY0006,羌活,四川,饮片/500g,6800,1600,
+ZY0007,白芷,浙江,饮片/500g,7500,1700,
+ZY0008,细辛,辽宁,饮片/100g,3500,800,
+ZY0009,薄荷,江苏,饮片/250g,4800,1200,
+ZY0010,菊花,安徽,饮片/500g,10500,2500,
+ZY0011,石膏,湖北,饮片/1000g,18200,5000,
+ZY0012,知母,河北,饮片/500g,9200,2200,
+ZY0013,栀子,湖南,饮片/500g,7800,1800,
+ZY0014,黄芩,山西,饮片/500g,8600,2000,
+ZY0015,黄连,四川,饮片/100g,4200,1000,
+ZY0016,黄柏,贵州,饮片/500g,6500,1500,
+ZY0017,金银花,山东,饮片/500g,12800,3000,
+ZY0018,连翘,河南,饮片/500g,9500,2200,
+ZY0019,蒲公英,陕西,饮片/500g,5800,1400,
+ZY0020,板蓝根,安徽,饮片/500g,13200,3200,
+ZY0021,人参,吉林,饮片/100g,8500,2000,
+ZY0022,黄芪,甘肃,饮片/500g,25600,6000,
+ZY0023,白术,浙江,饮片/500g,14200,3500,
+ZY0024,甘草,内蒙古,饮片/500g,32400,8000,
+ZY0025,当归,甘肃,饮片/500g,18300,4500,
+ZY0026,熟地黄,河南,饮片/500g,16800,4000,
+ZY0027,白芍,安徽,饮片/500g,12500,3000,
+ZY0028,阿胶,山东,块/250g,6200,1500,
+ZY0029,枸杞子,宁夏,饮片/500g,9800,2400,
+ZY0030,大枣,新疆,饮片/500g,21500,5000,
+ZY0031,半夏,四川,饮片/500g,7200,1800,
+ZY0032,陈皮,广东,饮片/500g,15600,3800,
+ZY0033,茯苓,云南,饮片/500g,23400,5500,
+ZY0034,泽泻,福建,饮片/500g,8900,2100,
+ZY0035,附子,四川,饮片/100g,3100,800,
+ZY0036,肉桂,广西,饮片/250g,5200,1300,
+ZY0037,山楂,山东,饮片/500g,6800,1600,
+ZY0038,麦芽,河北,饮片/500g,7500,1800,
+ZY0039,三七,云南,饮片/100g,4600,1100,
+ZY0040,白及,贵州,饮片/500g,3800,900,
+ZY0041,丹参,四川,饮片/500g,14200,3400,
+ZY0042,川芎,四川,饮片/500g,10800,2600,
+ZY0043,酸枣仁,河北,饮片/500g,9200,2200,
+ZY0044,远志,山西,饮片/500g,5800,1400,
+ZY0045,天麻,贵州,饮片/500g,12400,3000,
+ZY0046,钩藤,广西,饮片/500g,7600,1800,
+ZY0047,蜈蚣,湖北,条/10条,240,60,
+ZY0048,麝香,西藏,克/1g,85,20,
+ZY0049,冰片,广东,克/100g,3200,800,
+ZY0050,黄芪,甘肃,饮片/500g,25600,6000`;
+
+  const lines = basicCSV.trim().split('\n');
+  for (let i = 1; i < lines.length; i++) {
+    const parts = lines[i].split(',');
+    if (parts.length >= 6) {
+      const id = parseInt(parts[0].replace('ZY', ''));
+      medicines.push({
+        id,
+        name: parts[1],
+        origin: parts[2],
+        spec: parts[3],
+        stock: parseInt(parts[4]),
+        warning_threshold: parseInt(parts[5]),
+        is_warning: false,
+        usage_history: Array(7).fill(0),
+        last_usage: 0,
+        // 新增字段：预警开始时间、响应时间记录
+        warning_start_time: null,  // 预警开始时间
+        warning_response_times: []  // 历史响应时间记录 [{start, end, duration_minutes}]
+      });
+    }
+  }
+
+  // 初始化近7日用量（仅前5种有数据）
+  const usageCSV = `хуфз,бИ╩ф(ZY0001),╧Пж╕(ZY0002),вокур╤(ZY0003),╬ё╫Ф(ZY0004),╥ю╥Г(ZY0005)
+D-6,850,620,480,520,710
+D-5,920,580,510,490,680
+D-4,780,650,460,530,720
+D-3,1050,720,550,580,810
+D-2,980,680,520,560,790
+D-1,1100,750,590,610,850
+D-0,890,640,500,540,730`;
+
+  const usageLines = usageCSV.trim().split('\n');
+  const headers = usageLines[0].split(',').slice(1); // 跳过第一列
+  const medIdsFromHeader = headers.map(h => parseInt(h.match(/\d+/)[0])); // 提取 ZY0001 → 1
+
+  for (let dayIdx = 0; dayIdx < 7; dayIdx++) {
+    const values = usageLines[dayIdx + 1].split(',').slice(1);
+    for (let j = 0; j < values.length; j++) {
+      const medId = medIdsFromHeader[j];
+      const med = medicines.find(m => m.id === medId);
+      if (med) {
+        med.usage_history[dayIdx] = parseInt(values[j]);
+        if (dayIdx === 6) med.last_usage = parseInt(values[j]);
+      }
+    }
+  }
+
+  console.log("初始数据加载完成", medicines);
+  updateStats();
+}
+
+// ================== 工具函数 ==================
+function findMedicine(id) {
+  return medicines.find(m => m.id === id);
+}
+
+function log(msg) {
+  const logDiv = document.getElementById('inoutLog');
+  const time = new Date().toLocaleTimeString();
+  let icon = '📝';
+  if (msg.includes('成功')) icon = '✅';
+  if (msg.includes('入库')) icon = '📥';
+  if (msg.includes('出库')) icon = '📤';
+  if (msg.includes('预警')) icon = '⚠️';
+  if (msg.includes('删除')) icon = '🗑️';
+  if (msg.includes('错误') || msg.includes('不足')) icon = '❌';
+
+  logDiv.innerHTML += `<div class="log-entry"><strong>${time}</strong> ${icon} ${msg}</div>`;
+  logDiv.scrollTop = logDiv.scrollHeight;
+}
+
+// ================== 预警弹窗控制 ==================
+function showAlert(medName, stock, threshold) {
+  const modal = document.getElementById('alertModal');
+  const message = document.getElementById('alertMessage');
+  const now = new Date();
+  const timeString = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+  
+  message.innerHTML = `
+    <p><strong>${medName}</strong> 的库存已达到预警阈值！</p>
+    <p>预警时间: <strong>${timeString}</strong></p>
+    <p>当前库存: <strong style="color: var(--warning-color);">${stock}g</strong></p>
+    <p>预警阈值: <strong>${threshold}g</strong></p>
+    <p style="margin-top: 10px; color: #666; font-size: 0.9em;">
+      <i class="fas fa-info-circle"></i> 系统已开始记录响应时间，入库后会自动计算并显示响应时长。
+    </p>
+  `;
+  modal.style.display = 'flex';
+}
+
+function closeAlert() {
+  document.getElementById('alertModal').style.display = 'none';
+}
+
+// 点击弹窗背景也可关闭
+document.getElementById('alertModal').addEventListener('click', function(e) {
+  if (e.target.id === 'alertModal') {
+    closeAlert();
+  }
+});
+
+// ================== 药品管理 ==================
+function addMedicineForm() {
+  document.getElementById('formTitle').innerHTML = '<i class="fas fa-plus"></i> 新增药品';
+  document.getElementById('editId').value = '';
+  ['medId','medName','medOrigin','medSpec','medStock','medThreshold'].forEach(id => {
+    document.getElementById(id).value = '';
+  });
+  document.getElementById('medicineForm').style.display = 'block';
+}
+
+function saveMedicine() {
+  const id = parseInt(document.getElementById('medId').value);
+  const existing = findMedicine(id);
+  const isEdit = document.getElementById('editId').value !== '';
+
+  if (!isEdit && existing) {
+    alert('药品ID已存在！');
+    return;
+  }
+
+  const med = {
+    id,
+    name: document.getElementById('medName').value,
+    origin: document.getElementById('medOrigin').value,
+    spec: document.getElementById('medSpec').value,
+    stock: parseInt(document.getElementById('medStock').value) || 0,
+    warning_threshold: parseInt(document.getElementById('medThreshold').value) || 0,
+    is_warning: false,
+    usage_history: Array(7).fill(0),
+    last_usage: 0,
+    warning_start_time: null,
+    warning_response_times: []
+  };
+
+  if (isEdit) {
+    const idx = medicines.findIndex(m => m.id === id);
+    medicines[idx] = med;
+  } else {
+    medicines.push(med);
+  }
+
+  document.getElementById('medicineForm').style.display = 'none';
+  listAllMedicines();
+  log(`✅ ${isEdit ? '修改' : '新增'}药品: ${med.name} (ID:${med.id})`);
+  updateStats();
+}
+
+function listAllMedicines() {
+  let html = `<table>
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>名称</th>
+        <th>产地</th>
+        <th>规格</th>
+        <th>库存(g)</th>
+        <th>阈值(g)</th>
+        <th>状态</th>
+        <th>操作</th>
+      </tr>
+    </thead>
+    <tbody>`;
+
+  medicines.forEach(m => {
+    html += `<tr>
+      <td><strong>${m.id}</strong></td>
+      <td><strong>${m.name}</strong></td>
+      <td>${m.origin}</td>
+      <td>${m.spec}</td>
+      <td><strong>${m.stock}</strong></td>
+      <td>${m.warning_threshold}</td>
+      <td>
+        <span class="${m.is_warning ? 'status-warning' : 'status-normal'}">
+          <i class="fas ${m.is_warning ? 'fa-exclamation-circle' : 'fa-check-circle'}"></i>
+          ${m.is_warning ? '预警' : '正常'}
+        </span>
+      </td>
+      <td>
+        <button class="btn btn-primary" onclick="editMedicine(${m.id})" style="padding: 6px 12px; margin-right: 5px;">
+          <i class="fas fa-edit"></i>
+        </button>
+        <button class="btn btn-warning" onclick="deleteMedicine(${m.id})" style="padding: 6px 12px;">
+          <i class="fas fa-trash"></i>
+        </button>
+      </td>
+    </tr>`;
+  });
+
+  html += '</tbody></table>';
+  document.getElementById('medicineList').innerHTML = html;
+  updateStats();
+}
+
+function editMedicine(id) {
+  const med = findMedicine(id);
+  if (!med) return;
+  document.getElementById('formTitle').innerHTML = '<i class="fas fa-edit"></i> 编辑药品';
+  document.getElementById('editId').value = 'edit';
+  document.getElementById('medId').value = med.id;
+  document.getElementById('medName').value = med.name;
+  document.getElementById('medOrigin').value = med.origin;
+  document.getElementById('medSpec').value = med.spec;
+  document.getElementById('medStock').value = med.stock;
+  document.getElementById('medThreshold').value = med.warning_threshold;
+  document.getElementById('medicineForm').style.display = 'block';
+}
+
+function deleteMedicine(id) {
+  if (!confirm('确定删除此药品？')) return;
+  const med = findMedicine(id);
+  medicines = medicines.filter(m => m.id !== id);
+  listAllMedicines();
+  log(`🗑️ 删除药品: ${med.name} (ID:${id})`);
+  updateStats();
+}
+
+function queryMedicineForm() {
+  const keyword = prompt('请输入药品名称关键字:');
+  if (!keyword) return;
+  const matches = medicines.filter(m => m.name.includes(keyword));
+  let html = `<h3 class="card-title"><i class="fas fa-search"></i> 查询结果（共${matches.length}条）</h3>`;
+
+  if (matches.length > 0) {
+    html += `<div class="table-container"><table>
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>名称</th>
+          <th>库存(g)</th>
+          <th>状态</th>
+        </tr>
+      </thead>
+      <tbody>`;
+
+    matches.forEach(m => {
+      html += `<tr>
+        <td>${m.id}</td>
+        <td><strong>${m.name}</strong></td>
+        <td>${m.stock}</td>
+        <td>
+          <span class="${m.is_warning ? 'status-warning' : 'status-normal'}">
+            <i class="fas ${m.is_warning ? 'fa-exclamation-circle' : 'fa-check-circle'}"></i>
+            ${m.is_warning ? '预警' : '正常'}
+          </span>
+        </td>
+      </tr>`;
+    });
+
+    html += '</tbody></table></div>';
+  } else {
+    html += `<p style="text-align: center; padding: 20px; color: var(--text-light);">
+      <i class="fas fa-search fa-2x" style="margin-bottom: 10px; display: block;"></i>
+      未找到匹配的药品
+    </p>`;
+  }
+
+  document.getElementById('medicineList').innerHTML = html;
+}
+
+// ================== 入库/出库 ==================
+function doIn() {
+  const id = parseInt(document.getElementById('inMedId').value);
+  const qty = parseInt(document.getElementById('inQty').value);
+  const op = document.getElementById('inOperator').value;
+  const med = findMedicine(id);
+
+  if (!med) {
+    log('❌ 药品ID不存在');
+    return;
+  }
+
+  // 记录入库前的预警状态
+  const wasWarning = med.is_warning;
+  
+  med.stock += qty;
+  inOrders.push({ med_id: id, quantity: qty, operator_name: op, date: today() });
+  
+  // 检查预警状态变化
+  const nowWarning = med.stock < med.warning_threshold;
+  
+  // 如果之前是预警状态，现在解除了，记录响应时间
+  if (wasWarning && !nowWarning && med.warning_start_time) {
+    const endTime = new Date();
+    const startTime = med.warning_start_time;
+    const duration = Math.floor((endTime - startTime) / (1000 * 60)); // 分钟
+    
+    // 记录响应时间
+    med.warning_response_times.push({
+      start: startTime,
+      end: endTime,
+      duration_minutes: duration
+    });
+    
+    // 重置预警开始时间
+    med.warning_start_time = null;
+    
+    // 在日志中显示响应时间
+    log(`✅ 预警解除: ${med.name}，响应时间: ${duration}分钟`);
+  }
+  
+  checkWarning(id);
+  log(`📥 入库成功: ${med.name} +${qty}g, 操作员: ${op}, 当前库存: ${med.stock}g`);
+  updateStats();
+}
+
+function doOut() {
+  const id = parseInt(document.getElementById('outMedId').value);
+  const qty = parseInt(document.getElementById('outQty').value);
+  const rx = document.getElementById('prescriptionNo').value;
+  const med = findMedicine(id);
+
+  if (!med) {
+    log('❌ 药品ID不存在');
+    return;
+  }
+
+  if (med.stock < qty) {
+    log(`❌ 库存不足！当前: ${med.stock}g, 请求: ${qty}g`);
+    return;
+  }
+
+  const wasWarning = med.is_warning; // 记录预警前状态
+
+  med.stock -= qty;
+  outOrders.push({ med_id: id, quantity: qty, prescription_no: rx, date: today() });
+
+  // 更新今日用量（usage_history[6]）
+  med.usage_history[6] += qty;
+  med.last_usage = med.usage_history[6];
+
+  checkWarning(id);
+
+  // 如果之前不是预警，现在变成预警，则显示弹窗
+  if (!wasWarning && med.is_warning) {
+    showAlert(med.name, med.stock, med.warning_threshold);
+  }
+
+  log(`📤 出库成功: ${med.name} -${qty}g, 处方: ${rx}, 库存: ${med.stock}g`);
+  updateStats();
+}
+
+// ================== 预警逻辑 ==================
+function calculateThreeDayAverage(med) {
+  const sum = med.usage_history[4] + med.usage_history[5] + med.usage_history[6];
+  const count = 3;
+  return sum / count;
+}
+
+function setThresholdByUsage() {
+  medicines.forEach(med => {
+    const avg = calculateThreeDayAverage(med);
+    if (avg > 0) {
+      med.warning_threshold = Math.max(1, Math.floor(avg * 0.1));
+    }
+  });
+  log('🔄 已根据近3日用量更新所有药品预警阈值');
+  updateAllWarnings();
+}
+
+function checkWarning(id) {
+  const med = findMedicine(id);
+  if (!med) return;
+
+  const wasWarning = med.is_warning;
+  
+  if (med.stock < med.warning_threshold) {
+    // 变成预警状态
+    med.is_warning = true;
+    
+    // 如果是新触发的预警，记录开始时间
+    if (!wasWarning) {
+      med.warning_start_time = new Date();
+      log(`⚠️ 预警触发: ${med.name} (库存${med.stock} < 阈值${med.warning_threshold})，开始计时...`);
+      
+      // 显示预警弹窗
+      showAlert(med.name, med.stock, med.warning_threshold);
+    }
+  } else {
+    // 预警解除
+    if (wasWarning) {
+      med.is_warning = false;
+      
+      // 计算响应时间
+      if (med.warning_start_time) {
+        const endTime = new Date();
+        const startTime = med.warning_start_time;
+        const duration = Math.floor((endTime - startTime) / (1000 * 60)); // 分钟
+        
+        // 记录响应时间
+        med.warning_response_times.push({
+          start: startTime,
+          end: endTime,
+          duration_minutes: duration
+        });
+        
+        // 在日志中显示响应时间
+        log(`✅ 预警解除: ${med.name}，响应时间: ${duration}分钟`);
+        
+        // 重置预警开始时间
+        med.warning_start_time = null;
+      } else {
+        log(`✅ 预警解除: ${med.name}`);
+      }
+    }
+  }
+}
+
+function updateAllWarnings() {
+  medicines.forEach(m => checkWarning(m.id));
+  showWarningList();
+  updateStats();
+}
+
+function showWarningList() {
+  const warnings = medicines.filter(m => m.is_warning);
+  let html = '';
+
+  if (warnings.length === 0) {
+    html = `<p style="text-align: center; color: var(--success-color); padding: 20px;">
+      <i class="fas fa-check-circle fa-2x" style="margin-bottom: 10px; display: block;"></i>
+      当前无预警药品
+    </p>`;
+  } else {
+    html = `<div class="table-container"><table>
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>名称</th>
+          <th>库存(g)</th>
+          <th>阈值(g)</th>
+          <th>预警开始时间</th>
+          <th>已持续</th>
+          <th>状态</th>
+        </tr>
+      </thead>
+      <tbody>`;
+
+    warnings.forEach(m => {
+      let startTimeText = '未记录';
+      let durationText = '';
+      
+      if (m.warning_start_time) {
+        const startTime = m.warning_start_time;
+        startTimeText = startTime.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+        
+        const now = new Date();
+        const duration = Math.floor((now - startTime) / (1000 * 60)); // 分钟
+        if (duration < 60) {
+          durationText = `${duration}分钟`;
+        } else {
+          const hours = Math.floor(duration / 60);
+          const mins = duration % 60;
+          durationText = `${hours}小时${mins}分钟`;
+        }
+      }
+      
+      html += `<tr>
+        <td><strong>${m.id}</strong></td>
+        <td><strong>${m.name}</strong></td>
+        <td><span class="status-warning">${m.stock}</span></td>
+        <td>${m.warning_threshold}</td>
+        <td>${startTimeText}</td>
+        <td>${durationText}</td>
+        <td><span class="status-warning"><i class="fas fa-exclamation-circle"></i> 预警中</span></td>
+      </tr>`;
+    });
+
+    html += '</tbody></table></div>';
+  }
+
+  document.getElementById('warningList').innerHTML = html;
+  updateStats();
+}
+
+// ================== 响应时间报表功能 ==================
+function showResponseTimeReport() {
+  const reportDiv = document.getElementById('responseTimeReport');
+  const contentDiv = document.getElementById('responseTimeContent');
+  
+  // 收集有响应时间记录的药品
+  const medsWithResponseTimes = medicines.filter(m => 
+    m.warning_response_times && m.warning_response_times.length > 0
+  );
+  
+  if (medsWithResponseTimes.length === 0) {
+    contentDiv.innerHTML = `
+      <p style="text-align: center; color: var(--text-light); padding: 20px;">
+        <i class="fas fa-clock fa-2x" style="margin-bottom: 10px; display: block;"></i>
+        暂无预警响应时间记录
+      </p>
+    `;
+    reportDiv.style.display = 'block';
+    return;
+  }
+  
+  let html = `<div class="table-container"><table>
+    <thead>
+      <tr>
+        <th>药品名称</th>
+        <th>预警次数</th>
+        <th>平均响应时间(分钟)</th>
+        <th>最短响应时间</th>
+        <th>最长响应时间</th>
+        <th>最近响应时间</th>
+      </tr>
+    </thead>
+    <tbody>`;
+  
+  medsWithResponseTimes.forEach(med => {
+    const times = med.warning_response_times;
+    const totalDuration = times.reduce((sum, t) => sum + t.duration_minutes, 0);
+    const avgDuration = Math.floor(totalDuration / times.length);
+    const minDuration = Math.min(...times.map(t => t.duration_minutes));
+    const maxDuration = Math.max(...times.map(t => t.duration_minutes));
+    const lastResponse = times[times.length - 1];
+    const lastResponseTime = lastResponse.end.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+    
+    // 根据响应时间给出评级颜色
+    let ratingColor = '';
+    if (avgDuration <= 30) {
+      ratingColor = 'color: var(--success-color);';
+    } else if (avgDuration <= 120) {
+      ratingColor = 'color: #e9c46a;';
+    } else {
+      ratingColor = 'color: var(--warning-color);';
+    }
+    
+    html += `<tr>
+      <td><strong>${med.name}</strong> (ID:${med.id})</td>
+      <td><strong>${times.length}次</strong></td>
+      <td><strong style="${ratingColor}">${avgDuration}分钟</strong></td>
+      <td>${minDuration}分钟</td>
+      <td>${maxDuration}分钟</td>
+      <td>${lastResponseTime}</td>
+    </tr>`;
+  });
+  
+  html += '</tbody></table></div>';
+  
+  // 添加统计摘要
+  const allResponseTimes = medsWithResponseTimes.flatMap(m => m.warning_response_times);
+  const allDurations = allResponseTimes.map(t => t.duration_minutes);
+  const overallAvg = allDurations.length > 0 ? 
+    Math.floor(allDurations.reduce((a, b) => a + b) / allDurations.length) : 0;
+  const totalWarnings = allResponseTimes.length;
+  
+  html += `
+    <div style="margin-top: 20px; padding: 15px; background-color: #f8f9fa; border-radius: 8px;">
+      <h4 style="color: var(--secondary-color); margin-bottom: 10px;">
+        <i class="fas fa-chart-pie"></i> 统计摘要
+      </h4>
+      <div style="display: flex; flex-wrap: wrap; gap: 20px;">
+        <div>
+          <strong>总预警次数:</strong> ${totalWarnings}
+        </div>
+        <div>
+          <strong>平均响应时间:</strong> <span style="${overallAvg <= 60 ? 'color: var(--success-color);' : overallAvg <= 180 ? 'color: #e9c46a;' : 'color: var(--warning-color);'}">${overallAvg}分钟</span>
+        </div>
+        <div>
+          <strong>涉及药品数:</strong> ${medsWithResponseTimes.length}
+        </div>
+        <div>
+          <strong>总响应时间:</strong> ${allDurations.reduce((a, b) => a + b, 0)}分钟
+        </div>
+      </div>
+    </div>
+  `;
+  
+  contentDiv.innerHTML = html;
+  reportDiv.style.display = 'block';
+}
+
+// ================== 统计报表 ==================
+function getDailyOutTotal(date) {
+  return outOrders.filter(o => o.date === date).reduce((sum, o) => sum + o.quantity, 0);
+}
+
+function getMedicineOutTotal(medId, date) {
+  return outOrders.filter(o => o.med_id === medId && o.date === date).reduce((sum, o) => sum + o.quantity, 0);
+}
+
+function getPrescriptionCount(date) {
+  return outOrders.filter(o => o.date === date).length;
+}
+
+// 计算平均响应时间
+function calculateAvgResponseTime() {
+  const allResponseTimes = medicines.flatMap(m => m.warning_response_times);
+  if (allResponseTimes.length === 0) return 0;
+  
+  const totalDuration = allResponseTimes.reduce((sum, t) => sum + t.duration_minutes, 0);
+  return Math.floor(totalDuration / allResponseTimes.length);
+}
+
+// 显示平均响应时间报表
+function showAvgResponseTime() {
+  const avgResponseTime = calculateAvgResponseTime();
+  let html = `<div class="card">
+    <h3 class="card-title"><i class="fas fa-stopwatch"></i> 平均响应时间统计</h3>`;
+  
+  if (avgResponseTime > 0) {
+    html += `
+      <div style="text-align: center; padding: 20px;">
+        <div style="font-size: 3.5rem; color: ${avgResponseTime <= 60 ? 'var(--success-color)' : avgResponseTime <= 180 ? '#e9c46a' : 'var(--warning-color)'}; margin: 20px 0;">
+          ${avgResponseTime}<span style="font-size: 1.5rem;">分钟</span>
+        </div>
+        <div style="font-size: 1.2rem; color: var(--text-light); margin-bottom: 20px;">
+          平均预警响应时间
+        </div>
+      </div>`;
+    
+    // 显示响应时间分布
+    const allResponseTimes = medicines.flatMap(m => m.warning_response_times);
+    const quickCount = allResponseTimes.filter(t => t.duration_minutes <= 30).length;
+    const normalCount = allResponseTimes.filter(t => t.duration_minutes > 30 && t.duration_minutes <= 120).length;
+    const slowCount = allResponseTimes.filter(t => t.duration_minutes > 120).length;
+    
+    html += `
+      <div style="margin-top: 20px;">
+        <h4 style="color: var(--secondary-color); margin-bottom: 10px;">
+          <i class="fas fa-chart-pie"></i> 响应时间分布
+        </h4>
+        <div style="display: flex; justify-content: space-around; text-align: center; margin: 20px 0;">
+          <div>
+            <div style="font-size: 2rem; color: var(--success-color);">${quickCount}</div>
+            <div style="color: var(--text-light);">快速响应(≤30分钟)</div>
+          </div>
+          <div>
+            <div style="font-size: 2rem; color: #e9c46a;">${normalCount}</div>
+            <div style="color: var(--text-light);">正常响应(30-120分钟)</div>
+          </div>
+          <div>
+            <div style="font-size: 2rem; color: var(--warning-color);">${slowCount}</div>
+            <div style="color: var(--text-light);">慢速响应(>120分钟)</div>
+          </div>
+        </div>
+      </div>`;
+  } else {
+    html += `<p style="text-align: center; padding: 20px; color: var(--text-light);">
+      <i class="fas fa-clock fa-2x" style="margin-bottom: 10px; display: block;"></i>
+      暂无响应时间数据
+    </p>`;
+  }
+  
+  html += '</div>';
+  document.getElementById('reportOutput').innerHTML = html;
+}
+
+function showDailyReport() {
+  const date = today();
+  const totalDosage = getDailyOutTotal(date);
+  const rxCount = getPrescriptionCount(date);
+  const avgDosage = rxCount ? (totalDosage / rxCount).toFixed(2) : 0;
+
+  let html = `<div class="card">
+    <h3 class="card-title"><i class="fas fa-calendar-day"></i> ${date} 日报表</h3>
+
+    <div class="stats-container">
+      <div class="stat-card">
+        <div class="stat-icon">
+          <i class="fas fa-prescription"></i>
+        </div>
+        <div class="stat-value">${rxCount}</div>
+        <div class="stat-label">处方数量</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">
+          <i class="fas fa-weight"></i>
+        </div>
+        <div class="stat-value">${totalDosage}</div>
+        <div class="stat-label">总剂量(g)</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">
+          <i class="fas fa-calculator"></i>
+        </div>
+        <div class="stat-value">${avgDosage}</div>
+        <div class="stat-label">平均每方(g)</div>
+      </div>
+    </div>`;
+
+  // 用量排名
+  const usageMap = {};
+  outOrders.filter(o => o.date === date).forEach(o => {
+    usageMap[o.med_id] = (usageMap[o.med_id] || 0) + o.quantity;
+  });
+
+  const ranking = Object.entries(usageMap)
+    .map(([id, qty]) => ({ id: parseInt(id), qty }))
+    .sort((a, b) => b.qty - a.qty)
+    .slice(0, 5);
+
+  html += `<h4 style="margin-top: 25px; margin-bottom: 15px; color: var(--secondary-color);">
+    <i class="fas fa-trophy"></i> 当日用量Top5
+  </h4>`;
+
+  if (ranking.length > 0) {
+    html += `<div class="table-container"><table>
+      <thead>
+        <tr>
+          <th>排名</th>
+          <th>药品名称</th>
+          <th>用量(g)</th>
+        </tr>
+      </thead>
+      <tbody>`;
+
+    ranking.forEach((r, index) => {
+      const med = findMedicine(r.id);
+      const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : '🏅';
+      html += `<tr>
+        <td><strong>${medal} 第${index + 1}名</strong></td>
+        <td><strong>${med?.name || '未知'}</strong> (ID:${r.id})</td>
+        <td><strong>${r.qty}g</strong></td>
+      </tr>`;
+    });
+
+    html += '</tbody></table></div>';
+  } else {
+    html += `<p style="text-align: center; padding: 20px; color: var(--text-light);">
+      <i class="fas fa-chart-bar fa-2x" style="margin-bottom: 10px; display: block;"></i>
+      今日暂无出库记录
+    </p>`;
+  }
+
+  html += '</div>';
+  document.getElementById('reportOutput').innerHTML = html;
+}
+
+function showUsageRanking() {
+  const recentDates = [today()];
+  // 简化：只统计今天
+  const usageMap = {};
+  outOrders.filter(o => recentDates.includes(o.date)).forEach(o => {
+    usageMap[o.med_id] = (usageMap[o.med_id] || 0) + o.quantity;
+  });
+
+  const ranking = Object.entries(usageMap)
+    .map(([id, qty]) => ({ id: parseInt(id), qty }))
+    .sort((a, b) => b.qty - a.qty)
+    .slice(0, 5);
+
+  let html = `<div class="card">
+    <h3 class="card-title"><i class="fas fa-chart-line"></i> 近3日用量排名</h3>`;
+
+  if (ranking.length > 0) {
+    html += `<div class="table-container"><table>
+      <thead>
+        <tr>
+          <th>排名</th>
+          <th>药品名称</th>
+          <th>用量(g)</th>
+        </tr>
+      </thead>
+      <tbody>`;
+
+    ranking.forEach((r, index) => {
+      const med = findMedicine(r.id);
+      html += `<tr>
+        <td><strong>第${index + 1}名</strong></td>
+        <td><strong>${med?.name || '未知'}</strong> (ID:${r.id})</td>
+        <td><strong style="color: var(--primary-color);">${r.qty}g</strong></td>
+      </tr>`;
+    });
+
+    html += '</tbody></table></div>';
+  } else {
+    html += `<p style="text-align: center; padding: 20px; color: var(--text-light);">
+      <i class="fas fa-chart-line fa-2x" style="margin-bottom: 10px; display: block;"></i>
+      暂无用量数据
+    </p>`;
+  }
+
+  html += '</div>';
+  document.getElementById('reportOutput').innerHTML = html;
+}
+
+function showFrequencyRanking() {
+  const freqMap = {};
+  outOrders.forEach(o => {
+    freqMap[o.med_id] = (freqMap[o.med_id] || 0) + 1;
+  });
+
+  const ranking = Object.entries(freqMap)
+    .map(([id, freq]) => ({ id: parseInt(id), freq }))
+    .sort((a, b) => b.freq - a.freq)
+    .slice(0, 5);
+
+  let html = `<div class="card">
+    <h3 class="card-title"><i class="fas fa-sort-amount-down"></i> 近3日频次排名</h3>`;
+
+  if (ranking.length > 0) {
+    html += `<div class="table-container"><table>
+      <thead>
+        <tr>
+          <th>排名</th>
+          <th>药品名称</th>
+          <th>出库频次</th>
+        </tr>
+      </thead>
+      <tbody>`;
+
+    ranking.forEach((r, index) => {
+      const med = findMedicine(r.id);
+      html += `<tr>
+        <td><strong>第${index + 1}名</strong></td>
+        <td><strong>${med?.name || '未知'}</strong> (ID:${r.id})</td>
+        <td><strong style="color: var(--primary-color);">${r.freq}次</strong></td>
+      </tr>`;
+    });
+
+    html += '</tbody></table></div>';
+  } else {
+    html += `<p style="text-align: center; padding: 20px; color: var(--text-light);">
+      <i class="fas fa-list-ol fa-2x" style="margin-bottom: 10px; display: block;"></i>
+      暂无频次数据
+    </p>`;
+  }
+
+  html += '</div>';
+  document.getElementById('reportOutput').innerHTML = html;
+}
+
+// ================== 库存台账 ==================
+function generateLedger() {
+  const date = today();
+  let html = `<div class="table-container"><table>
+    <thead>
+      <tr>
+        <th>药品ID</th>
+        <th>名称</th>
+        <th>前日结余(g)</th>
+        <th>当日入库(g)</th>
+        <th>当日出库(g)</th>
+        <th>当日结余(g)</th>
+      </tr>
+    </thead>
+    <tbody>`;
+
+  let totalIn = 0, totalOut = 0;
+
+  medicines.forEach(med => {
+    const dailyIn = inOrders.filter(o => o.med_id === med.id && o.date === date).reduce((s, o) => s + o.quantity, 0);
+    const dailyOut = getMedicineOutTotal(med.id, date);
+    const prevBalance = med.stock - dailyIn + dailyOut;
+
+    html += `<tr>
+      <td><strong>${med.id}</strong></td>
+      <td><strong>${med.name}</strong></td>
+      <td>${prevBalance}</td>
+      <td><span style="color: var(--success-color);">${dailyIn > 0 ? '+' + dailyIn : dailyIn}</span></td>
+      <td><span style="color: var(--warning-color);">${dailyOut > 0 ? '-' + dailyOut : dailyOut}</span></td>
+      <td><strong>${med.stock}</strong></td>
+    </tr>`;
+
+    totalIn += dailyIn;
+    totalOut += dailyOut;
+  });
+
+  html += `<tr style="background-color: #f8f9fa; font-weight: bold;">
+    <td colspan="3">合计</td>
+    <td style="color: var(--success-color);">${totalIn}</td>
+    <td style="color: var(--warning-color);">${totalOut}</td>
+    <td></td>
+  </tr>`;
+
+  html += '</tbody></table></div>';
+
+  document.getElementById('ledgerTable').innerHTML = html;
+}
+
+// ================== 统计更新 ==================
+function updateStats() {
+  const warningCount = medicines.filter(m => m.is_warning).length;
+  const todayOutTotal = getDailyOutTotal(today());
+  const avgResponseTime = calculateAvgResponseTime();
+
+  document.getElementById('totalMedicines').textContent = medicines.length;
+  document.getElementById('warningCount').textContent = warningCount;
+  document.getElementById('todayOut').textContent = todayOutTotal;
+  document.getElementById('avgResponseTime').textContent = avgResponseTime;
+}
+
+// ================== UI 控制 ==================
+// 导航按钮点击事件
+document.querySelectorAll('.nav-btn').forEach(btn => {
+  btn.addEventListener('click', function() {
+    const section = this.getAttribute('data-section');
+
+    // 更新导航按钮状态
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+    this.classList.add('active');
+
+    // 显示对应内容区域
+    document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
+    document.getElementById(section + 'Section').classList.add('active');
+  });
+});
+
+// 初始加载
+loadInitialData();
+listAllMedicines();
+updateStats();
+</script>
+</body>
+</html>
